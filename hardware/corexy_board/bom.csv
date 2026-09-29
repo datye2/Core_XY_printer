@@ -1,0 +1,97 @@
+﻿Ref,Value,Footprint,Qty
+C1,1000uF/35V,Capacitor_THT:CP_Radial_D13.0mm_P5.00mm,1
+"C2,C4,C9,C11,C13,C15,C17",100nF/50V,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,7
+"C3,C8,C10,C12,C14,C16",100uF/35V,Capacitor_THT:CP_Radial_D8.0mm_P5.00mm,6
+C5,470uF/10V,Capacitor_THT:CP_Radial_D8.0mm_P5.00mm,1
+"C6,C7,C19,C21,C23,C24,C25,C26,C27,C28,C29",100nF,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,11
+"C18,C20",1uF,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm,2
+C22,10uF/35V,Capacitor_THT:CP_Radial_D5.0mm_P2.00mm,1
+D1,1.5KE33CA,Diode_THT:D_DO-201AD_P15.24mm_Horizontal,1
+D2,LED xanh (24V),LED_THT:LED_D3.0mm,1,mua
+D3,1.5KE6.8CA,Diode_THT:D_DO-201AD_P15.24mm_Horizontal,1,
+D4,1N5822 (SS34),Diode_THT:D_DO-201AD_P15.24mm_Horizontal,1,
+D5,LED xanh (5V),LED_THT:LED_D3.0mm,1,mua
+D6,LED xanh (3V3),LED_THT:LED_D3.0mm,1,mua
+"D7,D9",SB560 (SS54),Diode_THT:D_DO-201AD_P15.24mm_Horizontal,2,
+D8,LED đỏ (hotend),LED_THT:LED_D3.0mm,1,mua
+D10,LED đỏ (bed),LED_THT:LED_D3.0mm,1,mua
+"D11,D13",1N5819 (SS14),Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,2,
+"D12,D14",LED xanh,LED_THT:LED_D3.0mm,2,mua
+"D15,D16,D17,D18,D19,D20,D22,D24,D26",1N4148,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,9,mua
+"D21,D23,D25",LED đỏ,LED_THT:LED_D3.0mm,3,mua
+F1,15A (ATO),Fuse:Fuseholder_Blade_ATO_Littelfuse_Pudenz_2_Pin,1,mua
+"F2,F3",5A (ATO),Fuse:Fuseholder_Blade_ATO_Littelfuse_Pudenz_2_Pin,2,mua
+F4,2A (Mini),Fuse:Fuseholder_Blade_Mini_Keystone_3568,1,mua
+F5,PTC 0.5A,Fuse:Fuse_Bourns_MF-RG500,1,mua
+FB1,Ferrite 5A,Ferrite_THT:LairdTech_28C0236-0JW-10,1,
+J1,XT60 (24V vào),Connector_AMASS:AMASS_XT60-M_1x02_P7.20mm_Vertical,1,
+J2,FK743M2_P2,Connector_PinSocket_2.54mm:PinSocket_2x28_P2.54mm_Vertical,1,
+J3,FK743M2_P3,Connector_PinSocket_2.54mm:PinSocket_2x28_P2.54mm_Vertical,1,
+J4,Motor A (2B 2A 1A 1B),Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,1,
+J5,DIAG A (dây Dupont),Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1,
+J6,Motor B (2B 2A 1A 1B),Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,1,
+J7,DIAG B (dây Dupont),Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,1,
+J8,Motor Z1 (2B 2A 1A 1B),Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,1,
+J9,Motor Z2 (2B 2A 1A 1B),Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,1,
+J10,Motor E (2B 2A 1A 1B),Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,1,
+J11,"HOTEND (+24V, -)","TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",1,
+J12,"BED (+24V, -)",TerminalBlock_RND:TerminalBlock_RND_205-00067_1x02_P7.50mm_Horizontal,1,
+J13,"FAN PF (+24V, -)",Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,
+J14,"FAN HF (+24V, -)",Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,
+J15,"FAN BOARD (+24V, -)",Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,
+J16,NTC HOTEND,Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,
+J17,NTC BED,Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,
+J18,NTC SPARE,Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,1,
+J19,"SENSOR X (+24V, GND, SIG)",Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical,1,
+J20,"SENSOR Y (+24V, GND, SIG)",Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical,1,
+J21,"SENSOR Z (+24V, GND, SIG)",Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical,1,
+J22,"FILAMENT (5V, GND, SIG)",Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical,1,
+J23,"SBC UART (TX, RX, GND)",Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical,1,
+"JP1,JP2,JP3",RESET-SLEEP,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,3,
+NT1,NetTie GND-PGND,NetTie:NetTie-2_THT_Pad1.0mm,1,
+NT2,NetTie GND-MGND,NetTie:NetTie-2_THT_Pad1.0mm,1,
+Q1,IRLB3034PbF,Package_TO_SOT_THT:TO-220-3_Vertical,1,
+Q2,IRLB3034PbF (PWM),Package_TO_SOT_THT:TO-220-3_Vertical,1,
+Q3,IRLB3034PbF (SAFETY),Package_TO_SOT_THT:TO-220-3_Vertical,1,
+"Q4,Q5",AO3400A,Package_TO_SOT_SMD:SOT-23,2,
+"R1,R6,R8,R9,R10,R12,R14,R16,R18,R21,R24,R42,R45,R48,R50",10k,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,15,
+"R2,R3,R7,R43,R46,R49,R51",1k,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,7,
+R4,100k 1%,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,1,
+R5,10k 1%,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,1,
+"R11,R13,R15,R26,R29",100,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,5,
+"R17,R20,R23",22,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,3,
+"R19,R25,R28,R31",4.7k,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,4,
+"R22,R27,R30",100k,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,3,
+"R32,R35,R38",4.7k 1%,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,3,
+"R33,R34,R36,R37,R39,R40",2.37k 1%,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,6,
+"R41,R44,R47",1.5k 0.5W,Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal,3,
+TP1,VIN_24V,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP2,+5V,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP3,+5V_KIT,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP4,+3V3,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP5,GND,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP6,PGND,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP7,MGND,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP8,A_STEP,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP9,A_DIR,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP10,B_STEP,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP11,B_DIR,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP12,Z1_STEP,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP13,Z2_STEP,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP14,E_STEP,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP15,TMC_UART,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP16,SPARE_DRV,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP17,HE_NEG,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP18,BED_NEG,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP19,BED_MID,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP20,X_HOME,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP21,Y_HOME,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+TP22,Z_PROBE,TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm,1,
+U1,LM2596S module (chỉnh 5.2V),,1,
+U2,MKS TMC2209 (A),Module:Pololu_Breakout-16_15.2x20.3mm,1,
+U3,MKS TMC2209 (B),Module:Pololu_Breakout-16_15.2x20.3mm,1,
+U4,A4988 (Z1),Module:Pololu_Breakout-16_15.2x20.3mm,1,
+U5,A4988 (Z2),Module:Pololu_Breakout-16_15.2x20.3mm,1,
+U6,A4988 (E),Module:Pololu_Breakout-16_15.2x20.3mm,1,
+"U7,U8",TC4427CPA,Package_DIP:DIP-8_W7.62mm,2,
+"U9,U10,U11",PC817,Package_DIP:DIP-4_W7.62mm,3

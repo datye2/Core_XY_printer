@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "filename": "corexy_board.kicad_pro",
+    "version": 3
+  },
+  "sheets": [
+    [
+      "abaa8d1e-daf7-53cf-adc7-83ae89236413",
+      "Root"
+    ],
+    [
+      "40bef1b2-fd8c-5ba8-b974-ec0f83be537f",
+      "01_Nguon"
+    ],
+    [
+      "936e56ae-8835-56d1-8de8-ab8911446cc6",
+      "02_MCU"
+    ],
+    [
+      "2466b7b1-f9fb-5c6f-9c80-bf5f0ed0987f",
+      "03_Driver"
+    ],
+    [
+      "386d8612-30d2-5887-bff0-21b8433371ee",
+      "04_Heater"
+    ],
+    [
+      "26aee30e-48cf-5154-bd27-b91fd55bfe5e",
+      "05_Quat"
+    ],
+    [
+      "de92867e-ccd3-5c45-8b4b-7a2f9f8c804b",
+      "06_NTC"
+    ],
+    [
+      "855939c8-ad59-5f72-b013-1fe85773037d",
+      "07_IO"
+    ]
+  ]
+}

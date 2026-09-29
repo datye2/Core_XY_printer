@@ -1,0 +1,35 @@
+# Build output
+software/CoreXY/build/
+**/build/
+*.o
+*.obj
+*.elf
+*.map
+*.bin
+*.hex
+
+# Editor / tooling
+.cache/
+.vscode/ipch/
+compile_commands.json
+
+# KiCad
+*-backups/
+*.kicad_prl
+fp-info-cache
+*.bak
+*~
+
+# Python
+__pycache__/
+*.pyc
+
+# Third-party reference documents (kept locally, not redistributed)
+docs/references/
+_ref/
+
+# Misc
+New Folder/
+
+# KiCad lock files
+~*.lck

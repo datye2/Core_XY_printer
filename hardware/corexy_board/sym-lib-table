@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "corexy")(type "KiCad")(uri "${KIPRJMOD}/corexy.kicad_sym")(options "")(descr "Symbol riêng của bo CoreXY"))
+)

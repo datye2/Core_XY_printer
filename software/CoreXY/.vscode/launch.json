@@ -1,0 +1,67 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ST-Link (CoreXY)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/CoreXY.elf",
+            "servertype": "openocd",
+            "serverpath": "/usr/bin/openocd",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32h7x.cfg"
+            ],
+            "svdFile": "/data/90_Tools/ST/STM32CubeProgrammer/SVD/STM32H743.svd",
+            "runToEntryPoint": "main",
+            "preLaunchTask": "build",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            "showDevDebugOutput": "none"
+        },
+        {
+            "name": "ST-Link attach (khong nap lai)",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/CoreXY.elf",
+            "servertype": "openocd",
+            "serverpath": "/usr/bin/openocd",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32h7x.cfg"
+            ],
+            "svdFile": "/data/90_Tools/ST/STM32CubeProgrammer/SVD/STM32H743.svd",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            "showDevDebugOutput": "none"
+        },
+        {
+            "name": "J-Link (du phong)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/CoreXY.elf",
+            "servertype": "jlink",
+            "serverpath": "/usr/bin/JLinkGDBServerCLExe",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "device": "STM32H743II",
+            "interface": "swd",
+            "svdFile": "/data/90_Tools/ST/STM32CubeProgrammer/SVD/STM32H743.svd",
+            "runToEntryPoint": "main",
+            "preLaunchTask": "build",
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            "showDevDebugOutput": "none"
+        }
+    ]
+}

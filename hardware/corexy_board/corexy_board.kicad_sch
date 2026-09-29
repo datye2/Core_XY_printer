@@ -1,0 +1,425 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "abaa8d1e-daf7-53cf-adc7-83ae89236413")
+	(paper "A3")
+	(title_block
+		(title "Bo điều khiển máy in 3D CoreXY")
+		(date "2026-09-16")
+		(rev "0.1")
+		(comment 1 "Sinh tự động bởi hardware/tools/gen_schematic.py")
+	)
+	(lib_symbols)
+	(sheet
+		(at 25.4 50.8)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "40bef1b2-fd8c-5ba8-b974-ec0f83be537f")
+		(property "Sheetname" "01_Nguon"
+			(at 25.4 50.1 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "01_Nguon.kicad_sch"
+			(at 25.4 76.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "2")
+				)
+			)
+		)
+	)
+	(text "Nguồn 24V: bảo vệ, cầu chì, buck 5V, nối GND"
+		(exclude_from_sim no)
+		(at 27.4 53.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "5dd054af-2746-51d4-b96a-d4f3179daf81")
+	)
+	(sheet
+		(at 121.92 50.8)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "936e56ae-8835-56d1-8de8-ab8911446cc6")
+		(property "Sheetname" "02_MCU"
+			(at 121.92 50.1 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "02_MCU.kicad_sch"
+			(at 121.92 76.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "3")
+				)
+			)
+		)
+	)
+	(text "Kit MCU FANKE FK743M2-IIT6 (STM32H743IIT6) cắm qua 2 header 2x28"
+		(exclude_from_sim no)
+		(at 123.92 53.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "6c37894f-8634-5ea7-ad8c-8ae6e6f5b739")
+	)
+	(sheet
+		(at 218.44 50.8)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "2466b7b1-f9fb-5c6f-9c80-bf5f0ed0987f")
+		(property "Sheetname" "03_Driver"
+			(at 218.44 50.1 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "03_Driver.kicad_sch"
+			(at 218.44 76.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "4")
+				)
+			)
+		)
+	)
+	(text "Driver động cơ: A, B = TMC2209 (MKS V2.0, UART) | Z1, Z2, E = A4988"
+		(exclude_from_sim no)
+		(at 220.44 53.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "2fe8cced-b68c-568d-9efd-fa24c7d9717b")
+	)
+	(sheet
+		(at 314.96 50.8)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "386d8612-30d2-5887-bff0-21b8433371ee")
+		(property "Sheetname" "04_Heater"
+			(at 314.96 50.1 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "04_Heater.kicad_sch"
+			(at 314.96 76.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "5")
+				)
+			)
+		)
+	)
+	(text "Heater: hotend + bàn nhiệt (IRLB3034 lái bởi TC4427 @5V) + ngắt an toàn bàn nhiệt"
+		(exclude_from_sim no)
+		(at 316.96 53.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "b56ca7af-e661-55cb-aec6-853fc2ffc31a")
+	)
+	(sheet
+		(at 25.4 96.52)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "26aee30e-48cf-5154-bd27-b91fd55bfe5e")
+		(property "Sheetname" "05_Quat"
+			(at 25.4 95.82 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "05_Quat.kicad_sch"
+			(at 25.4 122.52 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "6")
+				)
+			)
+		)
+	)
+	(text "Quạt 24V 2 dây: làm mát chi tiết (PWM), tản nhiệt hotend (bật/tắt), quạt bo (luôn bật)"
+		(exclude_from_sim no)
+		(at 27.4 99.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "ed0bb63d-66b3-5063-bebf-b013db0bcd2d")
+	)
+	(sheet
+		(at 121.92 96.52)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "de92867e-ccd3-5c45-8b4b-7a2f9f8c804b")
+		(property "Sheetname" "06_NTC"
+			(at 121.92 95.82 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "06_NTC.kicad_sch"
+			(at 121.92 122.52 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "7")
+				)
+			)
+		)
+	)
+	(text "Đo nhiệt độ NTC 100k B3950 (mạch giống SKR 2 / Octopus / Prusa Buddy)"
+		(exclude_from_sim no)
+		(at 123.92 99.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "ca0fe2e7-3e28-5008-a173-98730b7a3f15")
+	)
+	(sheet
+		(at 218.44 96.52)
+		(size 76.2 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "855939c8-ad59-5f72-b013-1fe85773037d")
+		(property "Sheetname" "07_IO"
+			(at 218.44 95.82 0)
+			(effects
+				(font
+					(size 1.5 1.5)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "07_IO.kicad_sch"
+			(at 218.44 122.52 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "corexy_board"
+				(path "/abaa8d1e-daf7-53cf-adc7-83ae89236413"
+					(page "8")
+				)
+			)
+		)
+	)
+	(text "Cảm biến homing NPN 24V (cách ly PC817), cảm biến hết nhựa, UART cho SBC"
+		(exclude_from_sim no)
+		(at 220.44 99.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "2b55d808-aa59-57ad-b11b-036f03600b88")
+	)
+	(text "QUYẾT ĐỊNH THIẾT KẾ (chi tiết: docs/01_kinh_nghiem_tu_mach_tham_khao.md, mục 9)\n\n- Nguồn 24V qua XT60. 3 nhánh cầu chì: bed 15A / hotend+quạt 5A / motor+logic 5A.\n- 3 net GND: GND (logic), PGND (công suất), MGND (motor) nối 1 điểm bằng NetTie ở trang Nguồn.\n- Buck module 5.2V -> 1N5822 -> 5V của kit (chống USB cấp ngược vào máy tính).\n- Heater: IRLB3034 lái bởi TC4427 @5V. Bed có MOSFET an toàn nối tiếp (BED_SAFETY mặc định TẮT).\n- Driver: A, B = MKS TMC2209 V2.0 (UART PDN, địa chỉ 0/1). Z1, Z2, E = A4988 1/16 bước.\n- Homing X/Y/Z: cảm biến tiệm cận NPN 24V, cách ly PC817. Logic MCU: kích hoạt = mức THẤP.\n- Quạt 2 dây: part fan PWM, hotend fan bật/tắt, quạt bo luôn bật.\n\nLưu ý khi lắp bo thử:\n- Chỉnh áp ra buck 5.2V TRƯỚC khi nối vào mạch.\n- Chỉnh Vref A4988 Z1 và Z2 bằng nhau.\n- AO3400A là SOT-23 (SMD): hàn lên đế chuyển SOT-23 sang DIP.\n- Symbol linh kiện THT thay cho bản SMD dự kiến trên PCB: 1.5KE33CA~SMBJ28A, 1N5822~SS34, SB560~SS54, 1N5819~SS14."
+		(exclude_from_sim no)
+		(at 25.4 150 0)
+		(effects
+			(font
+				(size 1.6 1.6)
+			)
+			(justify left top)
+		)
+		(uuid "7e893350-478a-55e2-bda3-ea40d4abf655")
+	)
+	(text "GÁN CHÂN MCU (STM32H743IIT6 trên kit FK743M2-IIT6)\n\nPD3   -> A_STEP   (TMC2209 A)\nPD4   -> A_DIR\nPA15  -> XY_EN   (EN chung A+B)\nPD7   -> A_DIAG\nPG9   -> B_STEP\nPG10  -> B_DIR\nPG11  -> B_DIAG\nPE3   -> Z1_STEP\nPE4   -> Z1_DIR\nPB3   -> Z1_EN\nPF6   -> Z2_STEP\nPF7   -> Z2_DIR\nPF8   -> Z2_EN\nPB12  -> E_STEP\nPB13  -> E_DIR\nPB7   -> E_EN\nPB10  -> TMC_UART_TX   (USART3_TX (qua 1k))\nPB11  -> TMC_UART   (USART3_RX = bus UART)\nPC0   -> TH_HOTEND   (ADC)\nPC1   -> TH_BED\nPC4   -> TH_SPARE\nPB8   -> HOTEND_PWM   (TIM4_CH3)\nPB9   -> BED_PWM   (TIM4_CH4)\nPA4   -> BED_SAFETY\nPB14  -> PART_FAN_PWM   (TIM12_CH1)\nPB15  -> HOTEND_FAN_EN\nPA6   -> X_HOME\nPA7   -> Y_HOME\nPC7   -> Z_PROBE\nPC6   -> FIL_RUNOUT\nPC5   -> VIN_SENSE   (ADC, 24V/11)\nPA0   -> SBC_TX   (UART4_TX)\nPA1   -> SBC_RX   (UART4_RX)"
+		(exclude_from_sim no)
+		(at 250 150 0)
+		(effects
+			(font
+				(size 1.6 1.6)
+			)
+			(justify left top)
+		)
+		(uuid "545c5431-e17a-51ac-8772-8fd0fd69d7de")
+	)
+	(text "BO ĐIỀU KHIỂN MÁY IN 3D COREXY — STM32H743 + 2xTMC2209 + 3xA4988 — 24V"
+		(exclude_from_sim no)
+		(at 25.4 25.4 0)
+		(effects
+			(font
+				(size 4 4)
+				(bold yes)
+			)
+			(justify left top)
+		)
+		(uuid "484d6e66-6703-55aa-8246-cc4cb2110a68")
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
