@@ -18,12 +18,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "tmc2209.h"
+#include "stepper.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +48,14 @@
 /* USER CODE BEGIN PV */
 /* Result of tmc2209_init: [0] = motor A (addr 0), [1] = motor B (addr 1) */
 volatile tmc2209_status_t tmc_status[2];
+
+/* Test hook. Nothing moves on its own: set step_test_run from the debugger
+ * (or tools/flash_run.sh). Distance in whole mm, speed in mm/s. */
+volatile uint8_t  step_test_run = 0;         /* one straight move */
+volatile int32_t  step_test_dx = 20;         /* mm */
+volatile int32_t  step_test_dy = 0;          /* mm */
+volatile int32_t  step_test_speed = 2000;      /* mm/s */
+volatile stepper_status_t step_test_status = STEPPER_OK;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,9 +109,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(100);   /* let the drivers power up (VM must be on) */
   tmc_setup();
+  stepper_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -111,6 +123,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    if (step_test_run)
+    {
+      step_test_run = 0;
+      step_test_status = stepper_move_xy((float)step_test_dx,
+                                         (float)step_test_dy,
+                                         (float)step_test_speed);
+    }
   }
   /* USER CODE END 3 */
 }
