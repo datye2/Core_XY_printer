@@ -52,6 +52,8 @@ volatile tmc2209_status_t tmc_status[2];
 /* Test hook. Nothing moves on its own: set step_test_run from the debugger
  * (or tools/flash_run.sh). Distance in whole mm, speed in mm/s. */
 volatile uint8_t  step_test_run = 0;         /* one straight move */
+volatile uint8_t  step_test_split = 0;       /* same distance, 20 queued segments */
+volatile uint32_t step_test_ms = 0;          /* how long the last test took */
 volatile int32_t  step_test_dx = 20;         /* mm */
 volatile int32_t  step_test_dy = 0;          /* mm */
 volatile int32_t  step_test_speed = 20;      /* mm/s */
@@ -128,9 +130,37 @@ int main(void)
     {
       step_test_run = 0;
       stepper_set_accel((float)step_test_accel);
+      uint32_t t0 = HAL_GetTick();
       step_test_status = stepper_move_xy((float)step_test_dx,
                                          (float)step_test_dy,
                                          (float)step_test_speed);
+      stepper_wait();
+      step_test_ms = HAL_GetTick() - t0;
+    }
+
+    /* Same distance as step_test_run, but fed as 20 short segments. With
+     * lookahead the two should take the same time. */
+    if (step_test_split)
+    {
+      step_test_split = 0;
+      stepper_set_accel((float)step_test_accel);
+      const uint8_t parts = 20;
+      float sx = (float)step_test_dx / (float)parts;
+      float sy = (float)step_test_dy / (float)parts;
+      uint32_t t0 = HAL_GetTick();
+
+      for (uint8_t i = 0; i < parts; i++)
+      {
+        /* the queue holds 15, so wait for room instead of dropping moves */
+        while (stepper_queue_free() == 0)
+        {
+        }
+        step_test_status = stepper_move_xy(sx, sy, (float)step_test_speed);
+        if (step_test_status != STEPPER_OK)
+          break;
+      }
+      stepper_wait();
+      step_test_ms = HAL_GetTick() - t0;
     }
   }
   /* USER CODE END 3 */

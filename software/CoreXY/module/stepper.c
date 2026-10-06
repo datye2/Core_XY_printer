@@ -8,40 +8,77 @@
 
 /* TIM2 runs at 1 MHz (prescaler 239 on a 240 MHz timer clock), so one tick
  * is one microsecond and ARR is the step period in us. */
-#define TIM_TICK_HZ       1000000U
+#define TIM_TICK_HZ       1000000.0f
 #define STEP_PULSE_US     2U       /* TMC2209 needs ~100 ns, 2 us is safe */
-#define MIN_PERIOD_US     25U      /* 40 kHz per motor: what a NEMA17 can follow */
-#define START_PERIOD_US   2000U    /* don't crawl through the first steps */
+#define MIN_PERIOD_US     25U      /* 40 kHz per motor: what a NEMA17 follows */
+#define START_PERIOD_US   2000U    /* slowest period used, ~6 mm/s */
 #define DEFAULT_ACCEL     2000.0f  /* mm/s^2 */
+#define DEFAULT_JD        0.05f    /* junction deviation, mm */
+
+#define QUEUE_SIZE        16U      /* must be a power of two */
+#define QUEUE_MASK        (QUEUE_SIZE - 1U)
 
 #define A_STEP_PORT       STEP_A_PUL_GPIO_Port
 #define A_STEP_PIN        STEP_A_PUL_Pin
 #define B_STEP_PORT       STEP_B_PUL_GPIO_Port
 #define B_STEP_PIN        STEP_B_PUL_Pin
 
-/* Shared with the interrupt */
-static volatile int32_t steps_a = 0, steps_b = 0;    /* magnitudes */
-static volatile int32_t err_a = 0, err_b = 0;        /* Bresenham accumulators */
-static volatile int32_t event_count = 0;             /* ticks in this move */
-static volatile int32_t events_left = 0;             /* ticks still to run */
-static volatile int8_t  dir_a = 1, dir_b = 1;
-static volatile int32_t pos_a = 0, pos_b = 0;        /* absolute, in steps */
-static volatile uint8_t stopping = 0;                /* last pulse still high */
+/* ------------------------------------------------------------------ */
+/* Queue                                                               */
+/* ------------------------------------------------------------------ */
 
-/* Trapezoidal profile, all of it counted in timer ticks (AVR446 / David
- * Austin). The ISR only adds, subtracts and divides. */
-static volatile uint32_t c = 0;            /* current tick period, us */
-static volatile uint32_t c_min = 0;        /* period at cruise speed */
-static volatile uint32_t rest = 0;         /* remainder of the integer divide */
-static volatile int32_t  tick_index = 0;   /* ticks done in this move */
-static volatile int32_t  accel_ticks = 0;  /* length of the ramp up */
-static volatile int32_t  decel_ticks = 0;  /* length of the ramp down */
+typedef struct
+{
+  int32_t steps_a, steps_b;    /* magnitudes */
+  int8_t  dir_a, dir_b;
+  int32_t n;                   /* Bresenham events = steps of the busiest motor */
 
+  float length_mm;
+  float ux, uy;                /* unit vector of the move in XY */
+  float accel;                 /* mm/s^2 */
+
+  float nominal_speed;         /* mm/s, what was asked for */
+  float max_entry_speed;       /* mm/s, limit set by the corner */
+  float entry_speed;           /* mm/s, what the planner settled on */
+} block_t;
+
+static block_t queue[QUEUE_SIZE];
+static volatile uint8_t q_head = 0;   /* where the planner writes */
+static volatile uint8_t q_tail = 0;   /* what the ISR is running */
+
+static uint8_t q_next(uint8_t i) { return (uint8_t)((i + 1U) & QUEUE_MASK); }
+
+/* ------------------------------------------------------------------ */
+/* State                                                               */
+/* ------------------------------------------------------------------ */
+
+/* Planner side (main context only) */
+static float pos_x_mm = 0.0f, pos_y_mm = 0.0f;   /* commanded head position */
+static int32_t plan_a = 0, plan_b = 0;           /* commanded motor position, steps */
+static float prev_ux = 0.0f, prev_uy = 0.0f;     /* direction of the last queued move */
+static uint8_t have_prev = 0;
 static float accel_mm_s2 = DEFAULT_ACCEL;
+static float junction_dev = DEFAULT_JD;
 
-/* Commanded head position. Targets are computed from this in absolute terms
- * so rounding never accumulates over many segments. */
-static float pos_x_mm = 0.0f, pos_y_mm = 0.0f;
+/* Executor side (ISR) */
+static volatile int32_t steps_a = 0, steps_b = 0;
+static volatile int32_t err_a = 0, err_b = 0;
+static volatile int32_t event_count = 0;
+static volatile int32_t events_left = 0;
+static volatile int8_t  dir_a = 1, dir_b = 1;
+static volatile int32_t pos_a = 0, pos_b = 0;    /* executed position, steps */
+static volatile uint8_t running = 0;
+static volatile uint8_t stopping = 0;            /* last pulse still high */
+
+/* Speed profile of the block being executed, in timer ticks */
+static volatile uint32_t c = 0;          /* current period, us */
+static volatile uint32_t c_min = 0;      /* period at cruise speed */
+static volatile uint32_t rest = 0;       /* remainder of the integer divide */
+static volatile int32_t  tick_index = 0;
+static volatile int32_t  accel_until = 0;   /* ramp up while tick_index < this */
+static volatile int32_t  decel_from = 0;    /* ramp down while events_left <= this */
+static volatile int32_t  i_offset = 0;      /* virtual ramp index at entry speed */
+static volatile int32_t  j_offset = 0;      /* virtual ramp index at exit speed */
 
 static void delay_us(uint32_t us)
 {
@@ -52,143 +89,280 @@ static void delay_us(uint32_t us)
   }
 }
 
-stepper_status_t stepper_init(void)
+/* ------------------------------------------------------------------ */
+/* Planner                                                             */
+/* ------------------------------------------------------------------ */
+
+/* Speed reachable after accelerating over `distance` starting at v0. */
+static float speed_after(float v0, float accel, float distance)
 {
-  /* cycle counter, used only for the step pulse width */
-  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-  DWT->CYCCNT = 0;
-  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  return sqrtf(v0 * v0 + 2.0f * accel * distance);
+}
 
-  HAL_GPIO_WritePin(STEP_A_PUL_GPIO_Port, STEP_A_PUL_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(STEP_A_Dir_GPIO_Port, STEP_A_Dir_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(STEP_B_PUL_GPIO_Port, STEP_B_PUL_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(STEP_B_DIR_GPIO_Port, STEP_B_DIR_Pin, GPIO_PIN_RESET);
+/* Two passes over the queued blocks, grbl style. Backwards first: a block
+ * may not enter faster than it can still brake down to the entry speed of
+ * the one after it. Then forwards: it may not enter faster than the
+ * previous block can accelerate it to. The block being executed is left
+ * alone — its ramp is already running. */
+static void recalculate(void)
+{
+  if (q_head == q_tail)
+    return;
 
-  events_left = 0;
-  pos_a = pos_b = 0;
-  pos_x_mm = pos_y_mm = 0.0f;
-  return STEPPER_OK;
+  uint8_t first = q_tail;
+  if (running)
+    first = q_next(q_tail);        /* do not touch what the ISR is running */
+  if (first == q_head)
+    return;
+
+  /* backward pass */
+  uint8_t i = q_head;
+  float next_entry = 0.0f;         /* the queue ends at standstill */
+  while (i != first)
+  {
+    i = (uint8_t)((i + QUEUE_MASK) & QUEUE_MASK);   /* i-- */
+    block_t *b = &queue[i];
+    float reachable = speed_after(next_entry, b->accel, b->length_mm);
+    float v = b->max_entry_speed;
+    if (reachable < v) v = reachable;
+    if (b->nominal_speed < v) v = b->nominal_speed;
+    b->entry_speed = v;
+    next_entry = v;
+    if (i == first)
+      break;
+  }
+
+  /* forward pass */
+  uint8_t prev = first;
+  i = q_next(first);
+  while (i != q_head)
+  {
+    block_t *p = &queue[prev];
+    block_t *b = &queue[i];
+    float reachable = speed_after(p->entry_speed, p->accel, p->length_mm);
+    if (reachable < b->entry_speed)
+      b->entry_speed = reachable;
+    prev = i;
+    i = q_next(i);
+  }
+}
+
+/* Corner speed from the junction deviation model (grbl). A straight joint
+ * keeps full speed, a hairpin drops to nearly zero. */
+static float junction_speed(const block_t *b)
+{
+  if (!have_prev)
+    return 0.0f;                    /* first move starts from standstill */
+
+  float cos_theta = -(prev_ux * b->ux + prev_uy * b->uy);
+  if (cos_theta > 0.999999f)
+    return 0.0f;                    /* reversal: must stop */
+  if (cos_theta < -0.999999f)
+    return b->nominal_speed;        /* straight on */
+
+  float sin_half = sqrtf(0.5f * (1.0f - cos_theta));
+  if (sin_half >= 0.999999f)
+    return 0.0f;
+  return sqrtf(b->accel * junction_dev * sin_half / (1.0f - sin_half));
+}
+
+static void start_timer_if_idle(void)
+{
+  __disable_irq();
+  if (!running && q_head != q_tail)
+  {
+    running = 1;
+    stopping = 0;
+    events_left = 0;              /* makes the first interrupt load a block */
+    tick_index = 0;
+    TIM2->ARR  = START_PERIOD_US - 1U;
+    TIM2->CCR1 = STEP_PULSE_US;
+    TIM2->EGR  = TIM_EGR_UG;      /* ARR is preloaded: load it now */
+    TIM2->SR   = ~(TIM_SR_UIF | TIM_SR_CC1IF);
+    TIM2->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE;
+    TIM2->CR1  |= TIM_CR1_CEN;
+  }
+  __enable_irq();
 }
 
 stepper_status_t stepper_move_xy(float dx_mm, float dy_mm, float speed_mm_s)
 {
-  if (events_left != 0)
-    return STEPPER_BUSY;
   if (speed_mm_s <= 0.0f)
     return STEPPER_ERROR;
 
-  /* CoreXY: A = X + Y, B = X - Y, worked out from the absolute target */
+  uint8_t next = q_next(q_head);
+  if (next == q_tail)
+    return STEPPER_BUSY;            /* queue full */
+
+  /* CoreXY: A = X + Y, B = X - Y, from the absolute target so rounding
+   * never accumulates over many segments. */
   float tx = pos_x_mm + dx_mm;
   float ty = pos_y_mm + dy_mm;
   int32_t target_a = (int32_t)lroundf((tx + ty) * STEPS_PER_MM);
   int32_t target_b = (int32_t)lroundf((tx - ty) * STEPS_PER_MM);
+  int32_t da = target_a - plan_a;
+  int32_t db = target_b - plan_b;
 
-  int32_t da = target_a - pos_a;
-  int32_t db = target_b - pos_b;
-
-  dir_a = (da >= 0) ? 1 : -1;
-  dir_b = (db >= 0) ? 1 : -1;
-  steps_a = (da >= 0) ? da : -da;
-  steps_b = (db >= 0) ? db : -db;
-
-  int32_t n = (steps_a > steps_b) ? steps_a : steps_b;
+  int32_t abs_a = (da >= 0) ? da : -da;
+  int32_t abs_b = (db >= 0) ? db : -db;
+  int32_t n = (abs_a > abs_b) ? abs_a : abs_b;
   if (n == 0)
   {
     pos_x_mm = tx;
     pos_y_mm = ty;
-    return STEPPER_OK;
+    return STEPPER_OK;              /* shorter than one step */
   }
 
-  /* Everything below is counted in timer ticks. One tick is one Bresenham
-   * event, i.e. one step of the motor that moves the most. The head travels
-   * length_mm in XY while that motor does n steps. */
   float length_mm = sqrtf(dx_mm * dx_mm + dy_mm * dy_mm);
+
+  /* Speed cap: the busiest motor may not exceed MIN_PERIOD_US per step.
+   * On a diagonal that motor runs sqrt(2) faster than the head, and n /
+   * length already carries that factor. */
   float ticks_per_mm = (float)n / length_mm;
-  float v_max = speed_mm_s * ticks_per_mm;      /* ticks/s  */
-  float a     = accel_mm_s2 * ticks_per_mm;     /* ticks/s^2 */
+  float v_cap = (TIM_TICK_HZ / (float)MIN_PERIOD_US) / ticks_per_mm;
+  if (speed_mm_s > v_cap)
+    return STEPPER_ERROR;
 
-  uint32_t c_min_us = (uint32_t)(1000000.0f / v_max);
-  if (c_min_us < MIN_PERIOD_US)
-    return STEPPER_ERROR;          /* faster than the motors can follow */
+  block_t *b = &queue[q_head];
+  b->steps_a = abs_a;
+  b->steps_b = abs_b;
+  b->dir_a = (da >= 0) ? 1 : -1;
+  b->dir_b = (db >= 0) ? 1 : -1;
+  b->n = n;
+  b->length_mm = length_mm;
+  b->ux = dx_mm / length_mm;
+  b->uy = dy_mm / length_mm;
+  b->accel = accel_mm_s2;
+  b->nominal_speed = speed_mm_s;
 
-  /* Ticks needed to reach v_max; if they do not fit, the profile becomes a
-   * triangle and the move never reaches the requested speed. */
-  int32_t ramp = (int32_t)((v_max * v_max) / (2.0f * a));
-  if (ramp > n / 2)
-    ramp = n / 2;
+  float jv = junction_speed(b);
+  if (jv > speed_mm_s)
+    jv = speed_mm_s;
+  b->max_entry_speed = jv;
+  b->entry_speed = jv;
 
-  uint32_t c_start = (uint32_t)(1000000.0f * sqrtf(2.0f / a));
-  if (c_start > START_PERIOD_US)
-    c_start = START_PERIOD_US;
-  if (c_start < c_min_us)
-    c_start = c_min_us;
+  plan_a = target_a;
+  plan_b = target_b;
+  pos_x_mm = tx;
+  pos_y_mm = ty;
+  prev_ux = b->ux;
+  prev_uy = b->uy;
+  have_prev = 1;
 
+  q_head = next;
+  recalculate();
+  start_timer_if_idle();
+  return STEPPER_OK;
+}
+
+void stepper_set_accel(float accel_mm_s2_new)
+{
+  if (accel_mm_s2_new > 0.0f)
+    accel_mm_s2 = accel_mm_s2_new;
+}
+
+void stepper_set_junction_deviation(float jd_mm)
+{
+  if (jd_mm > 0.0f)
+    junction_dev = jd_mm;
+}
+
+/* ------------------------------------------------------------------ */
+/* Executor                                                            */
+/* ------------------------------------------------------------------ */
+
+static inline uint32_t period_of(float rate_ticks_s)
+{
+  if (rate_ticks_s < 1.0f)
+    return START_PERIOD_US;
+  uint32_t p = (uint32_t)(TIM_TICK_HZ / rate_ticks_s);
+  if (p > START_PERIOD_US) p = START_PERIOD_US;
+  if (p < MIN_PERIOD_US)   p = MIN_PERIOD_US;
+  return p;
+}
+
+/* Turn the block at the tail into the integer ramp the ISR runs. Called
+ * from the ISR, once per block, so the float maths here costs nothing per
+ * step. The exit speed is the entry speed of the next queued block, or
+ * zero when this is the last one. */
+static uint8_t load_block(void)
+{
+  if (q_tail == q_head)
+    return 0;
+
+  block_t *b = &queue[q_tail];
+
+  steps_a = b->steps_a;
+  steps_b = b->steps_b;
+  dir_a = b->dir_a;
+  dir_b = b->dir_b;
+  event_count = b->n;
+  events_left = b->n;
+  err_a = err_b = b->n / 2;
+  tick_index = 0;
+  rest = 0;
+
+  A_STEP_PORT->BSRR = (uint32_t)A_STEP_PIN << 16U;
+  B_STEP_PORT->BSRR = (uint32_t)B_STEP_PIN << 16U;
   HAL_GPIO_WritePin(STEP_A_Dir_GPIO_Port, STEP_A_Dir_Pin,
                     (dir_a > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
   HAL_GPIO_WritePin(STEP_B_DIR_GPIO_Port, STEP_B_DIR_Pin,
                     (dir_b > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  delay_us(10);                    /* DIR setup time before the first pulse */
 
-  /* Half a tick of head start spreads the steps evenly (as grbl does) */
-  event_count = n;
-  err_a = err_b = n / 2;
-  events_left = n;
+  uint8_t nxt = q_next(q_tail);
+  float exit_speed = (nxt == q_head) ? 0.0f : queue[nxt].entry_speed;
 
-  c            = c_start;
-  c_min        = c_min_us;
-  rest         = 0;
-  tick_index   = 0;
-  accel_ticks  = ramp;
-  decel_ticks  = (n - ramp < ramp) ? (n - ramp) : ramp;
+  float tpm = (float)b->n / b->length_mm;
+  float v_entry = b->entry_speed * tpm;        /* ticks/s */
+  float v_nom   = b->nominal_speed * tpm;
+  float v_exit  = exit_speed * tpm;
+  float a       = b->accel * tpm;              /* ticks/s^2 */
 
-  pos_x_mm = tx;
-  pos_y_mm = ty;
-  stopping = 0;
+  /* Ticks spent ramping, from v = sqrt(2 a s). */
+  float up   = (v_nom * v_nom - v_entry * v_entry) / (2.0f * a);
+  float down = (v_nom * v_nom - v_exit * v_exit) / (2.0f * a);
+  if (up < 0.0f)   up = 0.0f;
+  if (down < 0.0f) down = 0.0f;
 
-  /* Update event starts the pulse, compare match CC1 ends it STEP_PULSE_US
-   * later — the hardware times the pulse, the ISR never waits. */
-  TIM2->ARR  = c_start - 1U;
-  TIM2->CCR1 = STEP_PULSE_US;
-  /* ARR is preloaded (ARPE = 1), so force an update event to load it now —
-   * otherwise the first period would still use the previous value. UG also
-   * clears CNT; the UIF it raises is cleared right after. */
-  TIM2->EGR  = TIM_EGR_UG;
-  TIM2->SR   = ~(TIM_SR_UIF | TIM_SR_CC1IF);       /* no stale interrupt */
-  TIM2->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE;
-  TIM2->CR1  |= TIM_CR1_CEN;
-
-  return STEPPER_OK;
-}
-
-uint8_t stepper_busy(void)
-{
-  return (events_left != 0) ? 1U : 0U;
-}
-
-void stepper_wait(void)
-{
-  while (events_left != 0)
+  if (up + down > (float)b->n)
   {
+    /* Triangle: cruise is never reached. Solve for where the ramps meet. */
+    float peak = (2.0f * a * (float)b->n + v_exit * v_exit - v_entry * v_entry)
+                 / (4.0f * a);
+    if (peak < 0.0f) peak = 0.0f;
+    if (peak > (float)b->n) peak = (float)b->n;
+    up = peak;
+    down = (float)b->n - peak;
   }
+
+  accel_until = (int32_t)up;
+  decel_from  = (int32_t)down;
+
+  /* Where the entry and exit speeds sit on an imaginary ramp that started
+   * from standstill — this is what lets the recurrence continue smoothly
+   * instead of restarting at zero on every block. */
+  i_offset = (int32_t)((v_entry * v_entry) / (2.0f * a));
+  j_offset = (int32_t)((v_exit * v_exit) / (2.0f * a));
+
+  c     = period_of(v_entry);
+  c_min = period_of(v_nom);
+  if (c < c_min) c = c_min;
+
+  TIM2->ARR = c - 1U;
+  return 1;
 }
-
-int32_t stepper_pos_a(void) { return pos_a; }
-int32_t stepper_pos_b(void) { return pos_b; }
-
-/* Inverse transform: X = (A + B) / 2, Y = (A - B) / 2 */
-float stepper_pos_x(void) { return (float)(pos_a + pos_b) / (2.0f * STEPS_PER_MM); }
-float stepper_pos_y(void) { return (float)(pos_a - pos_b) / (2.0f * STEPS_PER_MM); }
 
 static inline void timer_off(void)
 {
   TIM2->CR1  &= ~TIM_CR1_CEN;
   TIM2->DIER &= ~(TIM_DIER_UIE | TIM_DIER_CC1IE);
+  running = 0;
 }
 
-/* Two interrupts per step period, both very short:
- *   update (ARR)  -> Bresenham, raise the STEP pins of the motors that step
+/* Two interrupts per step period:
+ *   update (ARR)  -> Bresenham, raise the STEP pins, advance the profile
  *   compare (CC1) -> drop both STEP pins, STEP_PULSE_US later
- * No waiting anywhere: the timer measures the pulse width in hardware. */
+ * Nothing waits: the timer measures the pulse width in hardware. */
 void stepper_tim2_isr(void)
 {
   uint32_t sr = TIM2->SR;
@@ -196,7 +370,6 @@ void stepper_tim2_isr(void)
   if (sr & TIM_SR_CC1IF)
   {
     TIM2->SR = ~TIM_SR_CC1IF;
-    /* dropping a pin that is already low costs nothing, so no bookkeeping */
     A_STEP_PORT->BSRR = (uint32_t)A_STEP_PIN << 16U;
     B_STEP_PORT->BSRR = (uint32_t)B_STEP_PIN << 16U;
 
@@ -214,8 +387,13 @@ void stepper_tim2_isr(void)
 
     if (events_left == 0)
     {
-      timer_off();
-      return;
+      /* block finished (or none loaded yet): take the next one */
+      if (!load_block())
+      {
+        timer_off();
+        return;
+      }
+      return;                       /* first pulse comes next period */
     }
 
     err_a += steps_a;
@@ -235,31 +413,30 @@ void stepper_tim2_isr(void)
     }
 
     events_left--;
+
     if (events_left == 0)
     {
-      stopping = 1;     /* CC1 still has to end this last pulse */
+      q_tail = q_next(q_tail);      /* release the block */
+      if (!load_block())
+        stopping = 1;               /* CC1 ends the last pulse, then stop */
       return;
     }
 
-    /* Trapezoidal profile. ARR is preloaded, so the value written here
-     * takes effect on the next period — exactly what a ramp wants. */
+    /* Trapezoid, AVR446 recurrence. ARR is preloaded, so this takes effect
+     * on the next period — exactly what a ramp wants. */
     tick_index++;
-    if (tick_index < accel_ticks)
+    if (tick_index < accel_until)
     {
       uint32_t num = 2U * c + rest;
-      uint32_t den = 4U * (uint32_t)tick_index + 1U;
-      c -= num / den;
+      uint32_t den = 4U * (uint32_t)(tick_index + i_offset) + 1U;
+      uint32_t d = num / den;
       rest = num % den;
-      if (c < c_min)
-      {
-        c = c_min;
-        rest = 0;
-      }
+      c = (c > d + c_min) ? (c - d) : c_min;
     }
-    else if (events_left <= decel_ticks)
+    else if (events_left <= decel_from)
     {
       uint32_t num = 2U * c + rest;
-      uint32_t den = 4U * (uint32_t)events_left + 1U;
+      uint32_t den = 4U * (uint32_t)(events_left + j_offset) + 1U;
       c += num / den;
       rest = num % den;
       if (c > START_PERIOD_US)
@@ -278,8 +455,51 @@ void stepper_tim2_isr(void)
   }
 }
 
-void stepper_set_accel(float accel_mm_s2_new)
+/* ------------------------------------------------------------------ */
+/* Housekeeping                                                        */
+/* ------------------------------------------------------------------ */
+
+stepper_status_t stepper_init(void)
 {
-  if (accel_mm_s2_new > 0.0f)
-    accel_mm_s2 = accel_mm_s2_new;
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  (void)delay_us;
+
+  HAL_GPIO_WritePin(STEP_A_PUL_GPIO_Port, STEP_A_PUL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(STEP_A_Dir_GPIO_Port, STEP_A_Dir_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(STEP_B_PUL_GPIO_Port, STEP_B_PUL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(STEP_B_DIR_GPIO_Port, STEP_B_DIR_Pin, GPIO_PIN_RESET);
+
+  q_head = q_tail = 0;
+  running = 0;
+  events_left = 0;
+  pos_a = pos_b = 0;
+  plan_a = plan_b = 0;
+  pos_x_mm = pos_y_mm = 0.0f;
+  have_prev = 0;
+  return STEPPER_OK;
 }
+
+uint8_t stepper_busy(void)
+{
+  return (running || q_head != q_tail) ? 1U : 0U;
+}
+
+uint8_t stepper_queue_free(void)
+{
+  uint8_t used = (uint8_t)((q_head - q_tail) & QUEUE_MASK);
+  return (uint8_t)(QUEUE_SIZE - 1U - used);
+}
+
+void stepper_wait(void)
+{
+  while (stepper_busy())
+  {
+  }
+}
+
+int32_t stepper_pos_a(void) { return pos_a; }
+int32_t stepper_pos_b(void) { return pos_b; }
+float stepper_pos_x(void) { return (float)(pos_a + pos_b) / (2.0f * STEPS_PER_MM); }
+float stepper_pos_y(void) { return (float)(pos_a - pos_b) / (2.0f * STEPS_PER_MM); }

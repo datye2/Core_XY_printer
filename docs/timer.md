@@ -127,10 +127,59 @@ void     stepper_tim2_isr(void);      /* gọi từ TIM2_IRQHandler */
 
 `stepper_move_xy` trả về ngay, ngắt lo phần còn lại. Đang chạy mà gọi tiếp thì trả về `STEPPER_BUSY`.
 
-## 10. Còn thiếu
+## 10. Gia tốc hình thang
 
-- **Gia tốc.** Hiện mỗi đoạn chạy tốc độ đều, nhảy từ 0 lên tốc độ đích ngay lập tức. Vì vậy tốc độ bị giới hạn bởi pull-in rate của motor, khoảng 30–50 mm/s tuỳ máy.
-- **Hàng đợi block.** Mỗi lệnh chạy phải đợi lệnh trước xong hẳn.
-- **Lookahead.** Mọi đoạn đều dừng về 0 ở điểm nối. Vẽ hình tròn 72 đoạn thì giật 72 lần.
+Mỗi block có ba pha: tăng tốc, chạy đều, giảm tốc. Tính trước ngoài ngắt, bằng số thực:
 
-Ba thứ này là nội dung của Bước 3 và Bước 5 trong [checklist.md](checklist.md).
+```
+ticks_per_mm = n / length_mm
+v_max = speed × ticks_per_mm        c_min  = 10⁶ / v_max
+a     = accel × ticks_per_mm        ramp   = (v_max² − v_entry²) / (2a)
+```
+
+Trong ngắt chỉ còn công thức truy hồi số nguyên của **Atmel AVR446**:
+
+```
+tăng tốc:  c −= (2c + rest) / (4·(i + i_offset) + 1)
+giảm tốc:  c += (2c + rest) / (4·(events_left + j_offset) + 1)
+chạy đều:  c = c_min
+```
+
+`rest` giữ phần dư của phép chia nguyên nên sai số không tích luỹ. Nếu đoạn quá ngắn, hai dốc chồng lên nhau và profile tự thành **hình tam giác**, không bao giờ đạt tốc độ đặt. Đây là lý do máy in thật không chạy đúng tốc độ trong slicer ở các chi tiết nhỏ.
+
+## 11. Lookahead
+
+Hai lớp tách bạch:
+
+| Lớp | Chạy ở | Số học | Việc |
+|---|---|---|---|
+| Planner | main loop | số thực | hàng đợi 16 block, tốc độ góc, hai lượt quét |
+| Executor | ngắt | số nguyên | Bresenham, truy hồi AVR446, nạp block kế tiếp |
+
+**Tốc độ qua góc** dùng mô hình junction deviation của grbl: góc giữa hai vector đơn vị quyết định tốc độ được phép, thẳng thì giữ nguyên, gập ngược thì về 0.
+
+**Hai lượt quét** mỗi khi có block mới:
+- Lùi: một block không được vào nhanh hơn mức còn phanh kịp để khớp tốc độ vào của block sau.
+- Tới: cũng không được vào nhanh hơn mức block trước đẩy lên được.
+
+Block mà ISR đang chạy không bao giờ bị sửa.
+
+**Mẹo nối liền hai block:** `i_offset` và `j_offset` đặt tốc độ vào và ra lên đúng vị trí trên một đường dốc ảo xuất phát từ 0. Nhờ đó công thức truy hồi chạy tiếp liền mạch qua ranh giới block thay vì khởi động lại.
+
+Đo trên máy thật, 100 mm ở 150 mm/s với gia tốc 2000:
+
+| Cách gửi | Thời gian |
+|---|---|
+| 1 đoạn 100 mm | 728 ms |
+| 20 đoạn 5 mm | 728 ms |
+| 20 đoạn, nếu dừng ở mỗi điểm nối | 1633 ms (mô phỏng) |
+
+Chia nhỏ không còn tốn gì. Với đường tròn 72 dây cung, mô phỏng cho thấy nhanh hơn **3.6 lần**.
+
+## 12. Còn thiếu
+
+- Parser G-code và lớp `motion_control` để chia cung tròn.
+- Nạp lệnh từ thẻ nhớ hoặc USB.
+- Input shaping.
+
+Xem [checklist.md](checklist.md).

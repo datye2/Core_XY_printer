@@ -31,7 +31,11 @@ A_DX=$(addr_of step_test_dx)
 A_DY=$(addr_of step_test_dy)
 A_SPEED=$(addr_of step_test_speed)
 A_ACCEL=$(addr_of step_test_accel)
-A_RUN=$(addr_of step_test_run)
+if [ "${SPLIT:-0}" = "1" ]; then
+  A_RUN=$(addr_of step_test_split)    # same distance as 20 queued segments
+else
+  A_RUN=$(addr_of step_test_run)
+fi
 
 # Two's complement for negative values (mww takes a 32-bit word).
 word() { if [ "$1" -lt 0 ]; then echo $(( 4294967296 + $1 )); else echo "$1"; fi; }

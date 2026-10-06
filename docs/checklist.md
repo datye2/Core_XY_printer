@@ -1,6 +1,6 @@
 # Checklist dự án
 
-Cập nhật: 2026-09-29
+Cập nhật: 2026-10-06
 
 ## Phần cứng
 
@@ -51,27 +51,32 @@ Cập nhật: 2026-09-29
 - [x] Thử thật: đường thẳng, hình vuông, hình tròn 72 đoạn, tất cả về đúng điểm xuất phát
 - [ ] Đo lại tốc độ tối đa sau khi sửa ISR (lần trước đứt SWD ở 80 mm/s)
 
-### Bước 3 — Gia tốc hình thang ⬜
+### Bước 3 — Gia tốc hình thang ✅
 
-- [ ] Mỗi block có 3 pha: tăng tốc, chạy đều, giảm tốc
-- [ ] Tính sẵn `accelerate_until` và `decelerate_after` ngoài ngắt
-- [ ] Đổi ARR theo pha, thuật toán tham khảo Atmel AVR446 hoặc David Austin
-- [ ] Giới hạn gia tốc và tốc độ theo **từng motor**, nhớ hệ số √2 khi đi chéo
-- [ ] Đo lại tốc độ tối đa, mục tiêu 150–200 mm/s
+- [x] Mỗi block có 3 pha: tăng tốc, chạy đều, giảm tốc
+- [x] Tính profile ngoài ngắt, trong ngắt chỉ còn truy hồi số nguyên AVR446
+- [x] Biến dư giữ phần lẻ của phép chia nên sai số không tích luỹ
+- [x] Đoạn ngắn tự chuyển thành profile tam giác
+- [x] Trần 40 kHz mỗi motor, tốc độ vô lý bị trả về `STEPPER_ERROR`
+- [x] `stepper_set_accel()`, mặc định 2000 mm/s²
+- [x] Chạy thật 100 mm ở 150 mm/s hết 728 ms, khớp mô phỏng
 
-### Bước 4 — Nhận lệnh ⬜
+### Bước 4 — Nhận lệnh ⬜ (việc tiếp theo)
 
 - [ ] Parser G-code tối giản: `G0`, `G1` với X, Y, F, rồi `G90`, `G91`
 - [ ] Giao tiếp qua USB CDC hoặc UART
 - [ ] `G2`, `G3`: chia cung tròn thành đoạn thẳng, giống `mc_arc` của grbl
 - [ ] Tách lớp `motion_control` ra khỏi `stepper`
 
-### Bước 5 — Hàng đợi và lookahead ⬜
+### Bước 5 — Hàng đợi và lookahead ✅
 
-- [ ] Ring buffer chứa các block, producer là main loop, consumer là ngắt
-- [ ] Nhìn trước để tính tốc độ được phép đi qua mỗi góc nối (junction deviation)
-- [ ] Quét lùi rồi quét tới trên buffer
-- [ ] Mục tiêu: hình tròn 72 đoạn chạy liền mạch, không giật
+- [x] Ring buffer 16 block, producer là main loop, consumer là ngắt
+- [x] Junction deviation kiểu grbl, `stepper_set_junction_deviation()`, mặc định 0.05 mm
+- [x] Quét lùi rồi quét tới, không đụng block đang chạy
+- [x] Nạp block kế tiếp ngay trong ngắt, timer không dừng giữa hai block
+- [x] `i_offset`, `j_offset` nối liền đường dốc qua ranh giới block
+- [x] Chạy thật: 100 mm chia 20 đoạn hết **728 ms**, bằng đúng khi đi một đoạn liền
+- [ ] Đo lại trên đường tròn 72 dây cung (mô phỏng cho thấy nhanh hơn 3.6 lần)
 
 ### Sau đó ⬜
 
