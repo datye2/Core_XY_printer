@@ -54,7 +54,8 @@ volatile tmc2209_status_t tmc_status[2];
 volatile uint8_t  step_test_run = 0;         /* one straight move */
 volatile int32_t  step_test_dx = 20;         /* mm */
 volatile int32_t  step_test_dy = 0;          /* mm */
-volatile int32_t  step_test_speed = 2000;      /* mm/s */
+volatile int32_t  step_test_speed = 20;      /* mm/s */
+volatile int32_t  step_test_accel = 2000;    /* mm/s^2 */
 volatile stepper_status_t step_test_status = STEPPER_OK;
 /* USER CODE END PV */
 
@@ -126,6 +127,7 @@ int main(void)
     if (step_test_run)
     {
       step_test_run = 0;
+      stepper_set_accel((float)step_test_accel);
       step_test_status = stepper_move_xy((float)step_test_dx,
                                          (float)step_test_dy,
                                          (float)step_test_speed);

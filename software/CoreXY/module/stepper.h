@@ -14,10 +14,13 @@ typedef enum
  * TIM2 must be initialised (MX_TIM2_Init) before this is called. */
 stepper_status_t stepper_init(void);
 
-/* Straight line in XY. CoreXY transform and Bresenham are inside, both
- * motors run off TIM2. Returns immediately; the interrupt does the work.
- * Constant speed, no acceleration yet, so keep speed_mm_s modest. */
+/* Straight line in XY. CoreXY transform, Bresenham and a trapezoidal speed
+ * profile are inside, both motors run off TIM2. Returns immediately; the
+ * interrupt does the work. The move starts and ends at standstill. */
 stepper_status_t stepper_move_xy(float dx_mm, float dy_mm, float speed_mm_s);
+
+/* Acceleration used by the moves that follow, mm/s^2. Default 2000. */
+void stepper_set_accel(float accel_mm_s2);
 
 /* Non-zero while a move is running. */
 uint8_t stepper_busy(void);

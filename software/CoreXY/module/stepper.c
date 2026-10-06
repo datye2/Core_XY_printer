@@ -10,7 +10,9 @@
  * is one microsecond and ARR is the step period in us. */
 #define TIM_TICK_HZ       1000000U
 #define STEP_PULSE_US     2U       /* TMC2209 needs ~100 ns, 2 us is safe */
-#define MIN_PERIOD_US     5U       /* 200 kHz ceiling per motor */
+#define MIN_PERIOD_US     25U      /* 40 kHz per motor: what a NEMA17 can follow */
+#define START_PERIOD_US   2000U    /* don't crawl through the first steps */
+#define DEFAULT_ACCEL     2000.0f  /* mm/s^2 */
 
 #define A_STEP_PORT       STEP_A_PUL_GPIO_Port
 #define A_STEP_PIN        STEP_A_PUL_Pin
@@ -25,6 +27,17 @@ static volatile int32_t events_left = 0;             /* ticks still to run */
 static volatile int8_t  dir_a = 1, dir_b = 1;
 static volatile int32_t pos_a = 0, pos_b = 0;        /* absolute, in steps */
 static volatile uint8_t stopping = 0;                /* last pulse still high */
+
+/* Trapezoidal profile, all of it counted in timer ticks (AVR446 / David
+ * Austin). The ISR only adds, subtracts and divides. */
+static volatile uint32_t c = 0;            /* current tick period, us */
+static volatile uint32_t c_min = 0;        /* period at cruise speed */
+static volatile uint32_t rest = 0;         /* remainder of the integer divide */
+static volatile int32_t  tick_index = 0;   /* ticks done in this move */
+static volatile int32_t  accel_ticks = 0;  /* length of the ramp up */
+static volatile int32_t  decel_ticks = 0;  /* length of the ramp down */
+
+static float accel_mm_s2 = DEFAULT_ACCEL;
 
 /* Commanded head position. Targets are computed from this in absolute terms
  * so rounding never accumulates over many segments. */
@@ -86,13 +99,29 @@ stepper_status_t stepper_move_xy(float dx_mm, float dy_mm, float speed_mm_s)
     return STEPPER_OK;
   }
 
-  /* Tick rate follows the motor with the most steps, but the duration comes
-   * from the distance the HEAD travels, in XY — not from A or B. */
+  /* Everything below is counted in timer ticks. One tick is one Bresenham
+   * event, i.e. one step of the motor that moves the most. The head travels
+   * length_mm in XY while that motor does n steps. */
   float length_mm = sqrtf(dx_mm * dx_mm + dy_mm * dy_mm);
-  float duration_s = length_mm / speed_mm_s;
-  uint32_t period_us = (uint32_t)((duration_s * 1000000.0f) / (float)n);
-  if (period_us < MIN_PERIOD_US)
-    return STEPPER_ERROR;          /* too fast for this pulse width */
+  float ticks_per_mm = (float)n / length_mm;
+  float v_max = speed_mm_s * ticks_per_mm;      /* ticks/s  */
+  float a     = accel_mm_s2 * ticks_per_mm;     /* ticks/s^2 */
+
+  uint32_t c_min_us = (uint32_t)(1000000.0f / v_max);
+  if (c_min_us < MIN_PERIOD_US)
+    return STEPPER_ERROR;          /* faster than the motors can follow */
+
+  /* Ticks needed to reach v_max; if they do not fit, the profile becomes a
+   * triangle and the move never reaches the requested speed. */
+  int32_t ramp = (int32_t)((v_max * v_max) / (2.0f * a));
+  if (ramp > n / 2)
+    ramp = n / 2;
+
+  uint32_t c_start = (uint32_t)(1000000.0f * sqrtf(2.0f / a));
+  if (c_start > START_PERIOD_US)
+    c_start = START_PERIOD_US;
+  if (c_start < c_min_us)
+    c_start = c_min_us;
 
   HAL_GPIO_WritePin(STEP_A_Dir_GPIO_Port, STEP_A_Dir_Pin,
                     (dir_a > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -105,13 +134,20 @@ stepper_status_t stepper_move_xy(float dx_mm, float dy_mm, float speed_mm_s)
   err_a = err_b = n / 2;
   events_left = n;
 
+  c            = c_start;
+  c_min        = c_min_us;
+  rest         = 0;
+  tick_index   = 0;
+  accel_ticks  = ramp;
+  decel_ticks  = (n - ramp < ramp) ? (n - ramp) : ramp;
+
   pos_x_mm = tx;
   pos_y_mm = ty;
   stopping = 0;
 
   /* Update event starts the pulse, compare match CC1 ends it STEP_PULSE_US
    * later — the hardware times the pulse, the ISR never waits. */
-  TIM2->ARR  = period_us - 1U;
+  TIM2->ARR  = c_start - 1U;
   TIM2->CCR1 = STEP_PULSE_US;
   /* ARR is preloaded (ARPE = 1), so force an update event to load it now —
    * otherwise the first period would still use the previous value. UG also
@@ -200,6 +236,50 @@ void stepper_tim2_isr(void)
 
     events_left--;
     if (events_left == 0)
+    {
       stopping = 1;     /* CC1 still has to end this last pulse */
+      return;
+    }
+
+    /* Trapezoidal profile. ARR is preloaded, so the value written here
+     * takes effect on the next period — exactly what a ramp wants. */
+    tick_index++;
+    if (tick_index < accel_ticks)
+    {
+      uint32_t num = 2U * c + rest;
+      uint32_t den = 4U * (uint32_t)tick_index + 1U;
+      c -= num / den;
+      rest = num % den;
+      if (c < c_min)
+      {
+        c = c_min;
+        rest = 0;
+      }
+    }
+    else if (events_left <= decel_ticks)
+    {
+      uint32_t num = 2U * c + rest;
+      uint32_t den = 4U * (uint32_t)events_left + 1U;
+      c += num / den;
+      rest = num % den;
+      if (c > START_PERIOD_US)
+      {
+        c = START_PERIOD_US;
+        rest = 0;
+      }
+    }
+    else
+    {
+      c = c_min;
+      rest = 0;
+    }
+
+    TIM2->ARR = c - 1U;
   }
+}
+
+void stepper_set_accel(float accel_mm_s2_new)
+{
+  if (accel_mm_s2_new > 0.0f)
+    accel_mm_s2 = accel_mm_s2_new;
 }

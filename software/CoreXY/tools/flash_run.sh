@@ -16,6 +16,7 @@ ELF=build/Debug/CoreXY.elf
 DX=${1:-20}
 DY=${2:-0}
 SPEED=${3:-20}
+ACCEL=${4:-2000}
 
 [ -f "$ELF" ] || { echo "no $ELF — run: cmake --build build/Debug"; exit 1; }
 
@@ -29,6 +30,7 @@ addr_of() {
 A_DX=$(addr_of step_test_dx)
 A_DY=$(addr_of step_test_dy)
 A_SPEED=$(addr_of step_test_speed)
+A_ACCEL=$(addr_of step_test_accel)
 A_RUN=$(addr_of step_test_run)
 
 # Two's complement for negative values (mww takes a 32-bit word).
@@ -38,15 +40,34 @@ echo "dx=$DX dy=$DY speed=$SPEED  run flag at $A_RUN"
 
 CMDS=()
 if [ "${NOFLASH:-0}" != "1" ]; then
-  CMDS+=(-c "program $ELF verify reset")
+  CMDS+=(-c "program $ELF verify reset")   # program runs init itself
+else
+  CMDS+=(-c "init")                        # needed before halt/mww/resume
 fi
 CMDS+=(-c "sleep 500")            # let startup clear .bss and run tmc_setup
 CMDS+=(-c "halt")
 CMDS+=(-c "mww $A_DX $(word "$DX")")
 CMDS+=(-c "mww $A_DY $(word "$DY")")
 CMDS+=(-c "mww $A_SPEED $(word "$SPEED")")
+CMDS+=(-c "mww $A_ACCEL $(word "$ACCEL")")
 CMDS+=(-c "mwb $A_RUN 1")         # one byte: the flag is a uint8_t
 CMDS+=(-c "resume")
 CMDS+=(-c "shutdown")
 
-exec openocd -f interface/stlink.cfg -f target/stm32h7x.cfg "${CMDS[@]}"
+# Adapter: ADAPTER=jlink|stlink, otherwise picked from what is plugged in.
+if [ -z "${ADAPTER:-}" ]; then
+  if lsusb 2>/dev/null | grep -qi '1366:'; then
+    ADAPTER=jlink
+  else
+    ADAPTER=stlink
+  fi
+fi
+
+case "$ADAPTER" in
+  jlink)  IFACE=(-f interface/jlink.cfg -c "transport select swd") ;;
+  stlink) IFACE=(-f interface/stlink.cfg) ;;
+  *) echo "ADAPTER must be jlink or stlink" >&2; exit 1 ;;
+esac
+
+echo "adapter: $ADAPTER"
+exec openocd "${IFACE[@]}" -f target/stm32h7x.cfg "${CMDS[@]}"
