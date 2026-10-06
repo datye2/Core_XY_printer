@@ -36,6 +36,10 @@ uint8_t stepper_queue_free(void);
 /* Block until the queue drains. Test helper — a real feeder never waits. */
 void stepper_wait(void);
 
+/* Stop now: drop the queue, halt the timer, leave the position as is.
+ * Used by the '!' realtime command. */
+void stepper_abort(void);
+
 /* TIM2 interrupt entry point. Called from TIM2_IRQHandler. */
 void stepper_tim2_isr(void);
 

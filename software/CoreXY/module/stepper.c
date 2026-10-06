@@ -1,6 +1,7 @@
 #include "stepper.h"
 #include "main.h"
 #include "tim.h"
+#include "motion_control.h"
 #include <math.h>
 
 /* GT2 belt, 20 tooth pulley, 1/16 microstepping */
@@ -15,7 +16,7 @@
 #define DEFAULT_ACCEL     2000.0f  /* mm/s^2 */
 #define DEFAULT_JD        0.05f    /* junction deviation, mm */
 
-#define QUEUE_SIZE        16U      /* must be a power of two */
+#define QUEUE_SIZE        32U      /* must be a power of two */
 #define QUEUE_MASK        (QUEUE_SIZE - 1U)
 
 #define A_STEP_PORT       STEP_A_PUL_GPIO_Port
@@ -74,8 +75,10 @@ static volatile uint8_t stopping = 0;            /* last pulse still high */
 static volatile uint32_t c = 0;          /* current period, us */
 static volatile uint32_t c_min = 0;      /* period at cruise speed */
 static volatile uint32_t rest = 0;       /* remainder of the integer divide */
-static volatile int32_t  tick_index = 0;
-static volatile int32_t  accel_until = 0;   /* ramp up while tick_index < this */
+/* Both thresholds are expressed in events_left, the one counter the
+ * Bresenham loop already keeps, so there is no second index to keep in
+ * step with it (grbl does the same). */
+static volatile int32_t  cruise_from = 0;   /* ramp up   while events_left >  this */
 static volatile int32_t  decel_from = 0;    /* ramp down while events_left <= this */
 static volatile int32_t  i_offset = 0;      /* virtual ramp index at entry speed */
 static volatile int32_t  j_offset = 0;      /* virtual ramp index at exit speed */
@@ -174,7 +177,6 @@ static void start_timer_if_idle(void)
     running = 1;
     stopping = 0;
     events_left = 0;              /* makes the first interrupt load a block */
-    tick_index = 0;
     TIM2->ARR  = START_PERIOD_US - 1U;
     TIM2->CCR1 = STEP_PULSE_US;
     TIM2->EGR  = TIM_EGR_UG;      /* ARR is preloaded: load it now */
@@ -299,7 +301,6 @@ static uint8_t load_block(void)
   event_count = b->n;
   events_left = b->n;
   err_a = err_b = b->n / 2;
-  tick_index = 0;
   rest = 0;
 
   A_STEP_PORT->BSRR = (uint32_t)A_STEP_PIN << 16U;
@@ -335,7 +336,7 @@ static uint8_t load_block(void)
     down = (float)b->n - peak;
   }
 
-  accel_until = (int32_t)up;
+  cruise_from = b->n - (int32_t)up;    /* ramping up while more than this is left */
   decel_from  = (int32_t)down;
 
   /* Where the entry and exit speeds sit on an imaginary ramp that started
@@ -424,11 +425,11 @@ void stepper_tim2_isr(void)
 
     /* Trapezoid, AVR446 recurrence. ARR is preloaded, so this takes effect
      * on the next period — exactly what a ramp wants. */
-    tick_index++;
-    if (tick_index < accel_until)
+    if (events_left > cruise_from)
     {
+      int32_t i = event_count - events_left;      /* ticks done so far */
       uint32_t num = 2U * c + rest;
-      uint32_t den = 4U * (uint32_t)(tick_index + i_offset) + 1U;
+      uint32_t den = 4U * (uint32_t)(i + i_offset) + 1U;
       uint32_t d = num / den;
       rest = num % den;
       c = (c > d + c_min) ? (c - d) : c_min;
@@ -479,6 +480,29 @@ stepper_status_t stepper_init(void)
   pos_x_mm = pos_y_mm = 0.0f;
   have_prev = 0;
   return STEPPER_OK;
+}
+
+void stepper_abort(void)
+{
+  __disable_irq();
+  TIM2->CR1  &= ~TIM_CR1_CEN;
+  TIM2->DIER &= ~(TIM_DIER_UIE | TIM_DIER_CC1IE);
+  running = 0;
+  stopping = 0;
+  events_left = 0;
+  q_head = q_tail;                 /* drop everything still queued */
+  __enable_irq();
+
+  A_STEP_PORT->BSRR = (uint32_t)A_STEP_PIN << 16U;
+  B_STEP_PORT->BSRR = (uint32_t)B_STEP_PIN << 16U;
+
+  /* The planner must now follow the motors, not the other way round. */
+  plan_a = pos_a;
+  plan_b = pos_b;
+  pos_x_mm = (float)(pos_a + pos_b) / (2.0f * STEPS_PER_MM);
+  pos_y_mm = (float)(pos_a - pos_b) / (2.0f * STEPS_PER_MM);
+  have_prev = 0;
+  mc_set_position(pos_x_mm, pos_y_mm);
 }
 
 uint8_t stepper_busy(void)

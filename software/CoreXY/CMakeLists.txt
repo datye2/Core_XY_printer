@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     module/stepper.c
     module/motion_control.c
     module/gcode.c
+    module/comms.c
 )
 
 # Add include paths
