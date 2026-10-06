@@ -44,6 +44,46 @@ howToStudy: function (H) {
   P(gap());
   P(...def("Một mẹo nhỏ nhưng hiệu quả:", "ghi **nhật ký học** vào một file văn bản. Mỗi buổi viết ba dòng: hôm nay dự đoán gì, đo được gì, vì sao lệch. Sau tám buổi, đọc lại chính nhật ký đó sẽ thấy rõ mình tiến tới đâu, và những chỗ từng hiểu sai thường là những chỗ nhớ kỹ nhất."));
 
+
+  P(h2("0.4 Lịch học hai ngày đầu"));
+  P(p("Tài liệu có ba tầng, và thứ tự đọc quan trọng hơn người ta tưởng. Đọc code khi chưa nắm hệ thống thì chỉ thấy một đống chi tiết rời rạc; nắm hệ thống rồi thì đọc code nhanh hơn nhiều, vì mỗi dòng đã có chỗ để gắn vào."));
+  P(table(["Tầng", "Nằm ở đâu", "Trả lời câu hỏi", "Đọc khi nào"],
+    [["Hệ thống", "Chương 1, 2, 3", "Máy gồm những gì, ghép với nhau ra sao", "trước tiên"],
+     ["Từng khâu", "Chương 4 tới 10", "Mỗi khâu giải quyết vấn đề gì, vì sao cần", "ngay sau đó"],
+     ["Code", "Phụ lục A", "Dòng nào làm việc đó", "khi bắt đầu sửa code"],
+     ["Phương pháp", "Chương 11, 12", "Làm việc và gỡ lỗi thế nào", "khi gặp lỗi đầu tiên"]],
+    [1, 1.3, 2.6, 1.2]));
+  P(gap());
+
+  P(h3("Ngày thứ nhất: hiểu hệ thống, khoảng 2 tiếng"));
+  P(table(["Buổi", "Thời lượng", "Việc"],
+    [["1", "60 phút", "Đọc chương 1, 2, 3. Chương 3 có sơ đồ phân lớp, là bức tranh tổng thể"],
+     ["2", "40 phút", "Làm bài tập lần theo một dòng lệnh, bảng ngay bên dưới"],
+     ["3", "20 phút", "Vẽ lại sơ đồ phân lớp từ trí nhớ, chỉ ra ranh giới đổi đơn vị nằm ở đâu và vì sao ở đó"]],
+    [0.6, 1, 4.4]));
+  P(gap());
+  P(h3("Bài tập buổi 2: lần theo một dòng lệnh"));
+  P(p("Lấy đúng một dòng G-code và tự điền bảng dưới, **không nhìn tài liệu**. Điền được hết nghĩa là đã hiểu hệ thống."));
+  P(...code(["G1 X10 Y10 F3000"]));
+  P(table(["Khâu", "Nhận vào cái gì", "Biến thành cái gì", "Đơn vị làm việc"],
+    [["gcode.c", "", "", ""],
+     ["motion_control.c", "", "", ""],
+     ["planner", "", "", ""],
+     ["ISR", "", "", ""],
+     ["driver TMC2209", "", "xung điện cho hai cuộn dây", "ampe"]],
+    [1.4, 1.7, 1.7, 1.2]));
+  P(gap());
+
+  P(h3("Ngày thứ hai: hiểu từng khâu, khoảng 2 tiếng"));
+  P(table(["Buổi", "Thời lượng", "Việc"],
+    [["1", "70 phút", "Đọc nhanh chương 4 tới 10. Mỗi chương chỉ cần nắm ba điều: vấn đề gì, giải bằng cách nào, kết quả đo ra sao. **Bỏ qua mọi đoạn code** trong các chương này"],
+     ["2", "40 phút", "Làm bài tập B.2. Đây là bài tập về hành vi của hệ thống, không phải về code: chạy lệnh, đọc số, so với dự đoán"],
+     ["3", "10 phút", "Ghi nhật ký ba dòng"]],
+    [0.6, 1, 4.4]));
+  P(gap());
+  P(...note("Chưa cần đọc phụ lục A trong hai ngày này.", "Để dành tới lúc bắt tay sửa code, và khi đó cũng chỉ mở đúng hai mục liên quan tới thứ đang làm."));
+  P(...def("Nếu thiếu thời gian:", "bỏ theo thứ tự nhật ký, rồi buổi 3 của ngày thứ nhất. Không bỏ buổi đọc chương 1, 2, 3 và buổi làm B.2, vì hai buổi đó là nền cho mọi thứ sau."));
+
   return out;
 },
 
