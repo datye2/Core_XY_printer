@@ -31,7 +31,9 @@ A_DX=$(addr_of step_test_dx)
 A_DY=$(addr_of step_test_dy)
 A_SPEED=$(addr_of step_test_speed)
 A_ACCEL=$(addr_of step_test_accel)
-if [ "${SPLIT:-0}" = "1" ]; then
+if [ "${JOB:-0}" = "1" ]; then
+  A_RUN=$(addr_of gcode_job_run)      # the G-code job baked into flash
+elif [ "${SPLIT:-0}" = "1" ]; then
   A_RUN=$(addr_of step_test_split)    # same distance as 20 queued segments
 else
   A_RUN=$(addr_of step_test_run)

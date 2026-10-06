@@ -61,12 +61,18 @@ Cập nhật: 2026-10-06
 - [x] `stepper_set_accel()`, mặc định 2000 mm/s²
 - [x] Chạy thật 100 mm ở 150 mm/s hết 728 ms, khớp mô phỏng
 
-### Bước 4 — Nhận lệnh ⬜ (việc tiếp theo)
+### Bước 4 — Nhận lệnh 🔶
 
-- [ ] Parser G-code tối giản: `G0`, `G1` với X, Y, F, rồi `G90`, `G91`
-- [ ] Giao tiếp qua USB CDC hoặc UART
-- [ ] `G2`, `G3`: chia cung tròn thành đoạn thẳng, giống `mc_arc` của grbl
-- [ ] Tách lớp `motion_control` ra khỏi `stepper`
+- [x] Parser `G0`, `G1`, `G2`, `G3`, `G4`, `G90`, `G91`, `G92`, `G21`, và `F`
+- [x] Bỏ qua Z, E, M, S, T, N để file của slicer vẫn chạy được trên máy chỉ có XY
+- [x] Bỏ chú thích `;` và `( ... )`
+- [x] Tách lớp `motion_control`: `mc_line`, `mc_arc`, giữ vị trí tuyệt đối
+- [x] `mc_arc` chia cung theo dung sai dây cung 0.002 mm, giống `mc_arc` của grbl
+- [x] `tools/make_gcode.py` sinh file demo, `tools/gcode_to_header.py` nhúng vào flash
+- [x] Chạy thật: 48 dòng, 0 lỗi, 9.4 giây, về đúng gốc
+- [ ] Nhận lệnh qua UART hoặc USB CDC thay vì nhúng vào flash
+- [ ] Trả `ok` sau mỗi dòng để host biết nhịp gửi
+- [ ] Đọc file từ thẻ microSD
 
 ### Bước 5 — Hàng đợi và lookahead ✅
 

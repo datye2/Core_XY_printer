@@ -26,6 +26,8 @@
 /* USER CODE BEGIN Includes */
 #include "tmc2209.h"
 #include "stepper.h"
+#include "gcode.h"
+#include "gcode_job.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,6 +56,12 @@ volatile tmc2209_status_t tmc_status[2];
 volatile uint8_t  step_test_run = 0;         /* one straight move */
 volatile uint8_t  step_test_split = 0;       /* same distance, 20 queued segments */
 volatile uint32_t step_test_ms = 0;          /* how long the last test took */
+
+/* G-code job baked into flash by tools/gcode_to_header.py */
+volatile uint8_t  gcode_job_run = 0;
+volatile uint32_t gcode_job_line = 0;        /* line being run */
+volatile int32_t  gcode_job_errors = 0;
+volatile gcode_status_t gcode_job_last = GCODE_OK;
 volatile int32_t  step_test_dx = 20;         /* mm */
 volatile int32_t  step_test_dy = 0;          /* mm */
 volatile int32_t  step_test_speed = 20;      /* mm/s */
@@ -117,6 +125,7 @@ int main(void)
   HAL_Delay(100);   /* let the drivers power up (VM must be on) */
   tmc_setup();
   stepper_init();
+  gcode_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -134,6 +143,25 @@ int main(void)
       step_test_status = stepper_move_xy((float)step_test_dx,
                                          (float)step_test_dy,
                                          (float)step_test_speed);
+      stepper_wait();
+      step_test_ms = HAL_GetTick() - t0;
+    }
+
+    /* Run the G-code job stored in flash, line by line. */
+    if (gcode_job_run)
+    {
+      gcode_job_run = 0;
+      gcode_job_errors = 0;
+      stepper_set_accel((float)step_test_accel);
+      uint32_t t0 = HAL_GetTick();
+
+      for (uint32_t i = 0; i < GCODE_JOB_LINES; i++)
+      {
+        gcode_job_line = i;
+        gcode_job_last = gcode_line(gcode_job[i]);
+        if (gcode_job_last != GCODE_OK && gcode_job_last != GCODE_EMPTY)
+          gcode_job_errors++;
+      }
       stepper_wait();
       step_test_ms = HAL_GetTick() - t0;
     }

@@ -47,6 +47,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     module/tmc2209.c
     module/stepper.c
+    module/motion_control.c
+    module/gcode.c
 )
 
 # Add include paths
