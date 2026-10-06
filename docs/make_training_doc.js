@@ -135,6 +135,8 @@ P(bullet("**Chương 4 tới 10** là các bước đã làm. Mỗi chương có
 P(bullet("**Chương 11 tới 13** là phương pháp làm việc, tổng hợp lỗi đã gặp, và phụ lục tra cứu."));
 P(...note("Nguyên tắc xuyên suốt dự án:", "không viết một dòng code nào cho bước sau khi bước hiện tại chưa chạy được trên phần cứng thật và chưa có số đo chứng minh. Mọi con số trong tài liệu đều là số đo, không phải số ước lượng."));
 
+P(require("./appendix_study.js").howToStudy({ h1, h2, h3, p, bullet, num, code, note, def, table, gap, brk, figure }));
+
 // ===================== 1 =====================
 P(brk(), h1("1. Nền tảng: động cơ bước và cách ra lệnh cho nó"));
 
@@ -744,6 +746,7 @@ P(table(["Hạng mục", "Trạng thái"],
 
 // ===================== phụ lục đọc code =====================
 P(require("./appendix_code.js")({ h1, h2, h3, p, bullet, num, code, note, def, table, gap, brk, figure }));
+P(require("./appendix_study.js").exercises({ h1, h2, h3, p, bullet, num, code, note, def, table, gap, brk, figure }));
 
 // ===================== build =====================
 const doc = new Document({
