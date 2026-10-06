@@ -742,6 +742,9 @@ P(table(["Hạng mục", "Trạng thái"],
    ["Vẽ mạch in", "chưa làm"]],
   [2.4, 1.6]));
 
+// ===================== phụ lục đọc code =====================
+P(require("./appendix_code.js")({ h1, h2, h3, p, bullet, num, code, note, def, table, gap, brk, figure }));
+
 // ===================== build =====================
 const doc = new Document({
   numbering: {
